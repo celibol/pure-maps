@@ -55,6 +55,8 @@ Item {
     width: app.navigationActive && app.portrait ? scaleBar.height : scaleBar.width
     z: 400
 
+    Component.onDestruction: console.log("ScaleBar Destruction called")
+
     Item {
         id: scaleBar
         anchors.centerIn: parent

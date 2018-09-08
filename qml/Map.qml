@@ -160,6 +160,8 @@ MapboxMap {
         map.updateMargins();
     }
 
+    Component.onDestruction: console.log("Map Destruction called")
+
     onAutoRotateChanged: {
         // Update map rotation to match travel direction.
         map.bearing = map.autoRotate && map.direction ? map.direction : 0;

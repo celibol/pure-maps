@@ -33,6 +33,8 @@ QtObject {
     property string streetFg      // street name foreground
     property string streetBg      // street name outline
 
+    Component.onDestruction: console.log("Styler Destruction called")
+
     function apply(guistyle) {
         defaults();
         if (guistyle == null) return;

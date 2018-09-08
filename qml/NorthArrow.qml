@@ -52,6 +52,8 @@ IconButton {
     width: icon.width
     z: 500
 
+    Component.onDestruction: console.log("NorthArrow Destruction called")
+
     Bubble {
         id: bubble
         anchorItem: parent

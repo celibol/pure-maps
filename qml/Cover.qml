@@ -25,6 +25,8 @@ CoverBackground {
     property bool active: status === Cover.Active
     property bool showNarrative: map.hasRoute && app.showNarrative
 
+    Component.onDestruction: console.log("Cover Destruction called")
+
     Image {
         // Background icon
         anchors.centerIn: parent

@@ -32,6 +32,8 @@ Item {
     width: Screen.width
     z: 100
 
+    Component.onDestruction: console.log("Root Destruction called")
+
     Item {
         id: revolver
         anchors.centerIn: parent

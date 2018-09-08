@@ -101,4 +101,6 @@ PositionSourceMapMatched {
         }
     }
 
+    Component.onDestruction: console.log("PositionSource Destruction called")
+
 }

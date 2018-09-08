@@ -51,4 +51,7 @@ IconButton {
     z: 500
 
     onClicked: map.centerOnPosition();
+
+    Component.onDestruction: console.log("CenterButton Destruction called")
+
 }

@@ -32,6 +32,8 @@ Item {
     visible: !app.navigationActive && !app.poiActive
     z: 400
 
+    Component.onDestruction: console.log("Meters Destruction called")
+
     Text {
         id: values
         anchors.bottom: parent.bottom

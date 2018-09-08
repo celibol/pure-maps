@@ -56,6 +56,8 @@ MapboxMapGestureArea {
         }]);
     }
 
+    Component.onDestruction: console.log("MapboxMapArea Destruction called")
+
     function coordinatesMatch(a, b) {
         // Return true if coordinates match given a sufficient tap buffer.
         var epsLon = map.pixelRatio * 30 * area.degLonPerPixel;

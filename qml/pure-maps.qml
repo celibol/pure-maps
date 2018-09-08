@@ -86,7 +86,7 @@ ApplicationWindow {
 
     Root { id: root }
     PositionSource { id: gps }
-    Python { id: py }
+    PythonWithTrace { id: py }
 
     Audio {
         id: sound
@@ -101,12 +101,14 @@ ApplicationWindow {
     }
 
     Component.onDestruction: {
+        console.log("ApplicationWindow Destruction called, python is ready:" + py.ready)
         if (!py.ready) return;
         app.conf.set("auto_center", map.autoCenter);
         app.conf.set("auto_rotate", map.autoRotate);
         app.conf.set("center", [map.center.longitude, map.center.latitude]);
         app.conf.set("zoom", map.zoomLevel);
         py.call_sync("poor.app.quit", []);
+        console.log("ApplicationWindow Destruction finished")
     }
 
     Keys.onPressed: {

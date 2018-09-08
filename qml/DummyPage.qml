@@ -29,6 +29,8 @@ Page {
     id: page
     allowedOrientations: app.defaultAllowedOrientations
 
+    Component.onDestruction: console.log("DummyPage Destruction called")
+
     Rectangle {
         id: background
         anchors.fill: parent

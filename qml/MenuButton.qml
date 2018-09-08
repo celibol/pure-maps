@@ -31,4 +31,5 @@ IconButton {
     visible: py.ready && !app.navigationActive && !app.poiActive
     z: 900
     onClicked: app.showMenu();
+    Component.onDestruction: console.log("MenuButton Destruction called")
 }
