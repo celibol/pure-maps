@@ -24,10 +24,13 @@ Item {
 
     property alias ready: py.ready
 
+    signal configurationChanged
+
     Component.onDestruction: console.log("PythonWithWrapper Destruction called")
 
     Python {
         id: py
+        onConfigurationChanged: wrapper.configurationChanged()
     }
 
     function call(func, args, callback) {
