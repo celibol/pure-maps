@@ -118,13 +118,20 @@ ApplicationWindow {
     }
 
     onApplicationActiveChanged: {
+        console.log("AppWindow: onApplicationActiveChanged called")
         if (!py.ready)
             return py.onReadyChanged.connect(app.updateKeepAlive);
         app.updateKeepAlive();
+        console.log("AppWindow: onApplicationActiveChanged done")
     }
 
     onNavigationActiveChanged: {
         app.updateKeepAlive();
+    }
+
+    Connections {
+        target: __quickWindow
+        onClosing: console.log("ApplicationWindow __qWindow onClosing")
     }
 
     function clearMenu() {
