@@ -33,7 +33,7 @@ Rectangle {
     radius: width/2
     states: [
         State {
-            when: !app.portrait && navigationInfoBlockLandscapeLeftShield.height > 0
+            when: (!app.portrait || app.mode === modes.followMe) && navigationInfoBlockLandscapeLeftShield.height > 0
             AnchorChanges {
                 target: ring
                 anchors.bottom: navigationInfoBlockLandscapeLeftShield.top
@@ -42,9 +42,9 @@ Rectangle {
     ]
     width: Math.round(Math.max(limit.width,limit.height) + 1.6*Theme.paddingLarge + Theme.paddingSmall)
     visible: {
-        if (!app.navigationActive || map.route.mode !== "car" || app.showSpeedLimit==="never")
+        if (app.mode === modes.explore || !map.route || map.route.mode !== "car" || app.conf.showSpeedLimit==="never")
             return false;
-        if (app.showSpeedLimit==="exceeding") {
+        if (app.conf.showSpeedLimit==="exceeding") {
             if (!gps.position.speedValid || gps.streetSpeedLimit==null || gps.streetSpeedLimit < 0)
                 return false;
             if (gps.position.speed <= gps.streetSpeedLimit)
@@ -66,7 +66,7 @@ Rectangle {
 
         Connections {
             target: app
-            onNavigationActiveChanged: limit.update()
+            onModeChanged: limit.update()
         }
 
         Connections {
@@ -78,7 +78,7 @@ Rectangle {
 
         function update() {
             // Update speed limit in user's preferred units.
-            if (!py.ready || !app.navigationActive) {
+            if (app.mode === modes.explore) {
                 if (text.length > 0) text = "";
                 return;
             }

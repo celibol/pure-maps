@@ -118,7 +118,7 @@ Page {
                 value: py.evaluate("poor.app.geocoder.name")
                 width: parent.width
                 onClicked: {
-                    var dialog = app.pageStack.push("GeocoderPage.qml");
+                    var dialog = app.push("GeocoderPage.qml");
                     dialog.accepted.connect(function() {
                         usingButton.value = py.evaluate("poor.app.geocoder.name");
                     });
@@ -153,7 +153,7 @@ Page {
             id: autocompleteTimer
             interval: 1000
             repeat: true
-            running: page.status === PageStatus.Active
+            running: page.status === PageStatus.Active && app.conf.autoCompleteGeo
             triggeredOnStart: true
             onTriggered: page.fetchCompletions();
         }
@@ -175,13 +175,13 @@ Page {
             page.filterCompletions();
         } else if (page.status === PageStatus.Active) {
             var resultPage = app.pageStack.nextPage();
-            resultPage.populated = false;
+            if (resultPage) resultPage.populated = false;
         }
     }
 
     function fetchCompletions() {
         // Fetch completions for a partial search query.
-        if (page.autocompletePending) return;
+        if (!app.conf.autoCompleteGeo || page.autocompletePending) return;
         var query = listView.searchField.text.trim();
         if (query === page.prevAutocompleteQuery) return;
         page.autocompletePending = true;

@@ -1,7 +1,28 @@
-2018-XX-XX: Pure Maps
+2018-09-23: Pure Maps 1.6
+=========================
+
+* Reworked page stack implementation
+* Specify font provider for raster maps
+* Update translations
+* Other changes
+* [1.6.1] Bugfix: Starting operations from PoiInfoPage
+
+2018-09-16: Pure Maps 1.5
 =========================
 
 * Switch share link to openstreetmaps.org
+* Prepare for adding public transport by Valhalla
+* Show full address in POI list
+* Allow disabling autocomplete
+* Make map rotation optional on start of navigation
+* Show route and markers in yellow for osm scout night styles
+* Update OSM Scout geocoder data parsing
+* Update translations
+* Add HERE Maps: traffic and satellite 
+* Other changes
+* [1.5.1] Bugfix: Sharing position
+* [1.5.1] Allow selecting maps service on sharing
+* [1.5.1] Add support for public transport routing by Valhalla routers
 
 2018-09-03: Pure Maps 1.4
 =========================

@@ -50,12 +50,13 @@ Page {
                 ToolItem {
                     id: beginItem
                     width: row.itemWidth + Theme.horizontalPageMargin
-                    icon: app.navigationActive ? "image://theme/icon-m-pause" : "image://theme/icon-m-play"
-                    text: app.navigationActive ? app.tr("Pause") :
+                    icon: app.mode === modes.navigate ? "image://theme/icon-m-pause" : "image://theme/icon-m-play"
+                    text: app.mode === modes.navigate ? app.tr("Pause") :
                         (app.navigationStarted ? app.tr("Resume") : app.tr("Begin"))
                     onClicked: {
-                        app.navigationActive ? map.endNavigating() : map.beginNavigating();
-                        app.hideMenu();
+                        if (app.mode === modes.navigate) app.setModeExplore();
+                        else app.setModeNavigate();
+                        app.hideNavigationPages();
                     }
                 }
 
@@ -66,8 +67,7 @@ Page {
                     text: app.tr("Reroute")
                     onClicked: {
                         app.reroute();
-                        map.beginNavigating();
-                        app.hideMenu();
+                        app.hideNavigationPages();
                     }
                 }
 
@@ -77,9 +77,9 @@ Page {
                     icon: "image://theme/icon-m-clear"
                     text: app.tr("Clear")
                     onClicked: {
-                        map.endNavigating();
+                        if (app.mode === modes.navigate) app.setModeExplore();
                         map.clearRoute();
-                        app.hideMenu();
+                        app.showMap();
                     }
                 }
 
@@ -192,49 +192,47 @@ Page {
 
             TextSwitch {
                 id: showNarrativeSwitch
-                checked: app.conf.get("show_narrative")
+                checked: app.conf.showNarrative
                 text: app.tr("Show navigation instructions")
                 onCheckedChanged: {
-                    app.conf.set("show_narrative", showNarrativeSwitch.checked);
-                    app.showNarrative = showNarrativeSwitch.checked;
+                    if (app.conf.showNarrative!==showNarrativeSwitch.checked)
+                        app.conf.set("show_narrative", showNarrativeSwitch.checked);
                 }
             }
 
             TextSwitch {
                 id: voiceNavigationSwitch
-                checked: app.conf.get("voice_navigation")
+                checked: app.conf.voiceNavigation
                 enabled: map.route.mode !== "transit"
                 text: app.tr("Voice navigation instructions")
                 onCheckedChanged: {
                     if (!voiceNavigationSwitch.enabled) return;
-                    if (voiceNavigationSwitch.checked === app.conf.get("voice_navigation")) return;
+                    if (voiceNavigationSwitch.checked === app.conf.voiceNavigation) return;
                     app.conf.set("voice_navigation", voiceNavigationSwitch.checked);
-                    app.navigationActive && map.initVoiceNavigation();
+                    if (app.mode === modes.navigate) map.initVoiceNavigation();
                 }
             }
 
             TextSwitch {
                 id: rerouteSwitch
-                checked: enabled && app.conf.get("reroute")
+                checked: enabled && app.conf.reroute
                 enabled: map.route.mode !== "transit"
                 text: app.tr("Reroute automatically")
                 onCheckedChanged: {
-                    if (!rerouteSwitch.enabled) return;
+                    if (!rerouteSwitch.enabled || rerouteSwitch.checked===app.conf.reroute) return;
                     app.conf.set("reroute", rerouteSwitch.checked);
                 }
             }
 
             TextSwitch {
                 id: mapmatchingSwitch
-                checked: enabled && app.conf.get("map_matching_when_navigating")
+                checked: enabled && app.conf.mapMatchingWhenNavigating
                 enabled: map.route.mode !== "transit"
                 text: app.tr("Snap position to road")
                 visible: app.hasMapMatching
                 onCheckedChanged: {
-                    if (!mapmatchingSwitch.enabled) return;
+                    if (!mapmatchingSwitch.enabled || mapmatchingSwitch.checked===app.conf.mapMatchingWhenNavigating) return;
                     app.conf.set("map_matching_when_navigating", mapmatchingSwitch.checked);
-                    if (mapmatchingSwitch.checked) app.mapMatchingModeNavigation=map.route.mode;
-                    else app.mapMatchingModeNavigation="none";
                 }
             }
 
@@ -251,17 +249,18 @@ Page {
                 onValueChanged: {
                     if (map.route.mode == null) return;
                     app.conf.set("map_scale_navigation_" + map.route.mode, scaleSlider.value);
-                    app.navigationActive && map.setScale(scaleSlider.value);
+                    if (app.mode === modes.navigate) map.setScale(scaleSlider.value);
                 }
             }
 
             TextSwitch {
                 id: directionsSwitch
-                checked: app.conf.get("show_navigation_sign")
+                checked: enabled && app.conf.showNavigationSign
+                enabled: map.route.mode !== "transit"
                 text: app.tr("Show direction signs")
                 onCheckedChanged: {
+                    if (!enabled || directionsSwitch.checked===app.conf.showNavigationSign) return;
                     app.conf.set("show_navigation_sign", directionsSwitch.checked);
-                    app.showNavigationSign = directionsSwitch.checked;
                 }
             }
 
@@ -279,15 +278,15 @@ Page {
                 property var values: ["always", "exceeding", "never"]
 
                 Component.onCompleted: {
-                    var value = app.conf.get("show_speed_limit");
+                    var value = app.conf.showSpeedLimit;
                     speedLimitComboBox.currentIndex = speedLimitComboBox.values.indexOf(value);
                 }
 
                 onCurrentIndexChanged: {
                     var index = speedLimitComboBox.currentIndex;
                     var v = speedLimitComboBox.values[index];
-                    app.conf.set("show_speed_limit", v);
-                    app.showSpeedLimit = v;
+                    if (v !== app.conf.showSpeedLimit)
+                        app.conf.set("show_speed_limit", v);
                 }
             }
 

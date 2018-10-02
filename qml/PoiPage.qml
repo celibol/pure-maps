@@ -68,13 +68,13 @@ Page {
                 color: listItem.highlighted ? Theme.secondaryHighlightColor : Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeSmall
                 height: text ? implicitHeight + Theme.paddingSmall : 0
-                maximumLineCount: 1
                 text: {
                     if (model.poiType && model.address) return model.poiType + ", " + model.address;
                     if (model.poiType) return model.poiType;
                     return model.address;
                 }
                 verticalAlignment: Text.AlignTop
+                wrapMode: Text.WordWrap
             }
 
             ListItemLabel {
@@ -98,8 +98,8 @@ Page {
                     onClicked: {
                         var poi = map.getPoiById(model.poiId);
                         if (!poi) return;
-                        app.pageStack.push("PoiInfoPage.qml",
-                                           {"poi": poi});
+                        app.push("PoiInfoPage.qml",
+                                 {"poi": poi});
                     }
                 }
                 MenuItem {
@@ -107,8 +107,8 @@ Page {
                     onClicked: {
                         var poi = map.getPoiById(model.poiId);
                         if (!poi) return;
-                        var dialog = app.pageStack.push("PoiEditPage.qml",
-                                                        {"poi": poi});
+                        var dialog = app.push("PoiEditPage.qml",
+                                              {"poi": poi});
                         dialog.accepted.connect(function() {
                             map.updatePoi(dialog.poi);
                             fillModel(lastQuery);

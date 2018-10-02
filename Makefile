@@ -1,7 +1,7 @@
 # -*- coding: us-ascii-unix -*-
 
 NAME       = harbour-pure-maps
-VERSION    = 1.4.2
+VERSION    = 1.6.1
 RELEASE    = $(NAME)-$(VERSION)
 DESTDIR    =
 PREFIX     = /usr
@@ -47,6 +47,8 @@ install:
 	@echo "Installing Python files..."
 	mkdir -p $(DATADIR)/poor
 	cp poor/*.py $(DATADIR)/poor
+	mkdir -p $(DATADIR)/poor/gpxpy
+	cp thirdparty/gpxpy/gpxpy*.py $(DATADIR)/poor/gpxpy
 	@echo "Installing QML files..."
 	mkdir -p $(DATADIR)/qml
 	cp qml/pure-maps.qml $(DATADIR)/qml/$(NAME).qml

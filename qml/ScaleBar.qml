@@ -30,10 +30,10 @@ Item {
     anchors.leftMargin: Theme.paddingLarge + Theme.paddingSmall
     anchors.topMargin: Theme.paddingLarge + Theme.paddingSmall
     anchors.rightMargin:  Theme.paddingLarge + Theme.paddingSmall
-    height: app.navigationActive && app.portrait ? scaleBar.width : scaleBar.height
+    height: (app.mode === modes.navigate || app.mode === modes.followMe) && app.portrait ? scaleBar.width : scaleBar.height
     states: [
         State {
-            when: app.navigationActive && !app.portrait
+            when: (app.mode === modes.navigate || app.mode === modes.followMe) && !app.portrait
             AnchorChanges {
                 target: master
                 anchors.bottom: navigationInfoBlockLandscapeRightShield.top
@@ -43,7 +43,7 @@ Item {
         },
 
         State {
-            when: app.navigationActive
+            when: app.mode === modes.navigate || app.mode === modes.followMe
             AnchorChanges {
                 target: master
                 anchors.bottom: undefined
@@ -52,7 +52,7 @@ Item {
         }
     ]
     visible: !app.poiActive
-    width: app.navigationActive && app.portrait ? scaleBar.height : scaleBar.width
+    width: (app.mode === modes.navigate || app.mode === modes.followMe) && app.portrait ? scaleBar.height : scaleBar.width
     z: 400
 
     Component.onDestruction: console.log("ScaleBar Destruction called")
@@ -66,7 +66,7 @@ Item {
         visible: scaleWidth > 0
 
         transform: Rotation {
-            angle: app.navigationActive && app.portrait ? 90 : 0
+            angle: (app.mode === modes.navigate || app.mode === modes.followMe) && app.portrait ? 90 : 0
             origin.x: scaleBar.width/2
             origin.y: scaleBar.height/2
         }
@@ -126,10 +126,7 @@ Item {
             onWidthChanged: scaleBar.update();
         }
 
-        Connections {
-            target: py
-            onReadyChanged: scaleBar.update();
-        }
+        Component.onCompleted: scaleBar.update()
 
         function roundedDistace(dist) {
             // Return dist rounded to an even amount of user-visible units,
@@ -149,7 +146,6 @@ Item {
         }
 
         function update() {
-            if (!py.ready) return;
             var dist = map.metersPerPixel * scaleBarMaxLength;
             dist = scaleBar.roundedDistace(dist);
             scaleBar.scaleWidth = dist / map.metersPerPixel;

@@ -36,14 +36,17 @@ Page {
                 title: app.tr("Preferences")
             }
 
+            SectionHeader {
+                text: app.tr("General")
+            }
+
             TextSwitch {
-                id: tiltSwitch
-                checked: app.conf.get("tilt_when_navigating")
-                description: app.tr("Only applies to vector maps.")
-                text: app.tr("Tilt map when navigating")
+                id: autocompleteSwitch
+                checked: app.conf.autoCompleteGeo
+                description: app.tr("Fetch autocompleted search results while typing a search string.")
+                text: app.tr("Autocomplete while searching")
                 onCheckedChanged: {
-                    app.conf.set("tilt_when_navigating", tiltSwitch.checked);
-                    map.tiltEnabled = tiltSwitch.checked;
+                    app.conf.set("auto_complete_geo", autocompleteSwitch.checked);
                 }
             }
 
@@ -58,26 +61,7 @@ Page {
                 width: parent.width
                 onValueChanged: {
                     app.conf.set("map_scale", scaleSlider.value);
-                    !app.navigationActive && map.setScale(scaleSlider.value);
-                }
-            }
-
-            ComboBox {
-                id: voiceGenderComboBox
-                description: app.tr("Preferred gender for voice navigation. Only supported by some engines and languages.")
-                label: app.tr("Voice gender")
-                menu: ContextMenu {
-                    MenuItem { text: app.tr("Male") }
-                    MenuItem { text: app.tr("Female") }
-                }
-                property var values: ["male", "female"]
-                Component.onCompleted: {
-                    var value = app.conf.get("voice_gender");
-                    voiceGenderComboBox.currentIndex = voiceGenderComboBox.values.indexOf(value);
-                }
-                onCurrentIndexChanged: {
-                    var index = voiceGenderComboBox.currentIndex;
-                    app.conf.set("voice_gender", voiceGenderComboBox.values[index]);
+                    app.mode !== modes.navigate && map.setScale(scaleSlider.value);
                 }
             }
 
@@ -115,13 +99,12 @@ Page {
                 visible: app.hasMapMatching
                 property var values: ["none", "car", "bicycle", "foot"]
                 Component.onCompleted: {
-                    var value = app.conf.get("map_matching_when_idle");
+                    var value = app.conf.mapMatchingWhenIdle;
                     mapmatchingComboBox.currentIndex = mapmatchingComboBox.values.indexOf(value);
                 }
                 onCurrentIndexChanged: {
                     var index = mapmatchingComboBox.currentIndex;
                     app.conf.set("map_matching_when_idle", mapmatchingComboBox.values[index]);
-                    app.updateMapMatching();
                 }
             }
 
@@ -135,18 +118,65 @@ Page {
                 }
                 property var values: ["metric", "american", "british"]
                 Component.onCompleted: {
-                    var value = app.conf.get("units");
+                    var value = app.conf.units;
                     unitsComboBox.currentIndex = unitsComboBox.values.indexOf(value);
                 }
                 onCurrentIndexChanged: {
                     var index = unitsComboBox.currentIndex;
                     app.conf.set("units", unitsComboBox.values[index]);
-                    app.scaleBar.update();
+                }
+            }
+
+            SectionHeader {
+                text: app.tr("Navigation")
+            }
+
+            TextSwitch {
+                id: autorotateSwitch
+                checked: app.conf.autoRotateWhenNavigating
+                description: app.tr("Set rotation of the map in the direction of movement when starting navigation.")
+                text: app.tr("Rotate map when navigating")
+                onCheckedChanged: {
+                    app.conf.set("auto_rotate_when_navigating", autorotateSwitch.checked);
+                }
+            }
+
+            TextSwitch {
+                id: tiltSwitch
+                checked: app.conf.tiltWhenNavigating
+                description: app.tr("Only applies to vector maps.")
+                enabled: autorotateSwitch.checked
+                text: app.tr("Tilt map when navigating")
+                onCheckedChanged: {
+                    app.conf.set("tilt_when_navigating", tiltSwitch.checked);
+                }
+            }
+
+            ComboBox {
+                id: voiceGenderComboBox
+                description: app.tr("Preferred gender for voice navigation. Only supported by some engines and languages.")
+                label: app.tr("Voice gender")
+                menu: ContextMenu {
+                    MenuItem { text: app.tr("Male") }
+                    MenuItem { text: app.tr("Female") }
+                }
+                property var values: ["male", "female"]
+                Component.onCompleted: {
+                    var value = app.conf.voiceGender;
+                    voiceGenderComboBox.currentIndex = voiceGenderComboBox.values.indexOf(value);
+                }
+                onCurrentIndexChanged: {
+                    var index = voiceGenderComboBox.currentIndex;
+                    app.conf.set("voice_gender", voiceGenderComboBox.values[index]);
                 }
             }
 
             Spacer {
                 height: Theme.paddingLarge
+            }
+
+            SectionHeader {
+                text: app.tr("Miscellaneous")
             }
 
             Button {
@@ -157,9 +187,52 @@ Page {
             }
 
             Spacer {
+                height: Theme.paddingLarge
+            }
+
+            SectionHeader {
+                text: app.tr("Development")
+            }
+
+            ListItemLabel {
+                font.pixelSize: Theme.fontSizeSmall
+                height: implicitHeight
+                text: app.tr("The following options are for development only. Please don't change them unless you know what you are doing.")
+                wrapMode: Text.WordWrap
+            }
+
+            TextSwitch {
+                id: develSwitch
+                checked: false
+                text: app.tr("Show development options")
+            }
+
+            TextSwitch {
+                id: develCoorSwitch
+                checked: app.conf.developmentCoordinateCenter
+                description: app.tr("Sets current position to the center of the current map view. Remember to disable GPS positioning when using this option.")
+                text: app.tr("Set position to the map center")
+                visible: develSwitch.checked
+                onCheckedChanged: {
+                    app.conf.set("devel_coordinate_center", develCoorSwitch.checked);
+                }
+            }
+
+            TextSwitch {
+                id: develShowZSwitch
+                checked: app.conf.developmentShowZ
+                text: app.tr("Show current zoom level")
+                visible: develSwitch.checked
+                onCheckedChanged: {
+                    app.conf.set("devel_show_z", develShowZSwitch.checked);
+                }
+            }
+
+            Spacer {
                 height: 2 * Theme.paddingLarge
             }
 
+            Component.onCompleted: develSwitch.checked = (develCoorSwitch.checked || develShowZSwitch.checked)
         }
 
         VerticalScrollDecorator {}

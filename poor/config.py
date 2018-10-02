@@ -28,14 +28,19 @@ __all__ = ("ConfigurationStore",)
 
 DEFAULTS = {
     "auto_center": False,
+    "auto_complete_geo": True,
     "auto_rotate": False,
+    "auto_rotate_when_navigating": True,
     "basemap": "mapbox_streets",
     "center": [13.0, 49.0],
+    "devel_coordinate_center": False,
+    "devel_show_z": False,
     "geocoder": "opencage",
     "guide": "foursquare",
     # "always", "navigating" or "never".
     "keep_alive": "navigating",
     # "none", "car", "bicycle", "foot"
+    "map_matching_when_following": "none",
     "map_matching_when_idle": "none",
     "map_matching_when_navigating": False,
     "map_scale": 1.0,
@@ -46,6 +51,8 @@ DEFAULTS = {
     "poi_list_show_bookmarked": False,
     "reroute": True,
     "router": "stadiamaps",
+    "share_osm": True,
+    "share_googlemaps": False,
     "show_narrative": True,
     "show_navigation_sign": True,
     # "always", "exceeding", "never"
@@ -105,6 +112,9 @@ class ConfigurationStore(poor.AttrDict):
         name = option.split(".")[-1]
         return copy.deepcopy(root[name])
 
+    def get_all(self):
+        return self
+    
     def _migrate(self, values):
         """Migrate configuration values from earlier versions."""
         values = copy.deepcopy(values)

@@ -33,6 +33,8 @@ class Maneuver:
 
     def __init__(self, **kwargs):
         """Initialize a :class:`Maneuver` instance."""
+        self.arrive_instruction = ""
+        self.depart_instruction = ""
         self.duration = 0
         self.icon = "flag"
         self.length = 0
@@ -40,6 +42,7 @@ class Maneuver:
         self.node = None
         self.sign = None
         self.street = None
+        self.travel_type = ""
         self.verbal_alert = ""
         self.verbal_post = ""
         self.verbal_pre = ""
@@ -368,11 +371,14 @@ class Narrative:
         maneuvers = sorted(maneuvers, key=lambda x: x.node)
         return [dict(
             active=(maneuver.node == man_node),
+            arrive_instruction=maneuver.arrive_instruction,
+            depart_instruction=maneuver.depart_instruction,
             icon=maneuver.icon,
             length=poor.util.format_distance(maneuver.length),
             narrative=maneuver.narrative,
             sign=maneuver.sign,
             street=maneuver.street,
+            travel_type=maneuver.travel_type,
             verbal_alert=maneuver.verbal_alert,
             verbal_post=maneuver.verbal_post,
             verbal_pre=maneuver.verbal_pre,
@@ -452,7 +458,7 @@ class Narrative:
             if i >= len(self.verbals) - 1: break
             end = self.verbals[i].time - self.verbals[i].duration
             next_start = self.verbals[i+1].time
-            while end < next_start:
+            while end < next_start and i+1 < len(self.verbals):
                 iw = self.verbals[i].importance
                 jw = self.verbals[i+1].importance
                 remove = i if iw < jw else i + 1

@@ -35,56 +35,45 @@ ApplicationWindow {
     id: app
     allowedOrientations: defaultAllowedOrientations
     cover: Cover {}
-    initialPage: DummyPage { id: dummy }
+    initialPage: InitPage { }
 
-    property var  attributionButton: null
-    property var  centerButton: null
     property var  conf: Config {}
     property bool hasMapMatching: false
+    property bool initialized: false
     property var  map: null
     property string mapMatchingMode: {
         if (!hasMapMatching) return "none";
-        if (navigationActive) return mapMatchingModeNavigation;
-        return mapMatchingModeIdle;
+        if (app.mode === modes.navigate)
+            return app.conf.mapMatchingWhenNavigating && map && map.route && map.route.mode ? map.route.mode : "none"
+        if (app.mode === modes.followMe) return app.conf.mapMatchingWhenFollowing;
+        return app.conf.mapMatchingWhenIdle;
     }
-    property string mapMatchingModeIdle: "none"
-    property string mapMatchingModeNavigation: "none"
-    property var  menuButton: null
-    property var  meters: null
-    property var  narrativePageSeen: false
-    property bool navigationActive: false
-    property var  navigationBlock: null
-    property var  navigationInfoBlock: null
-    property var  navigationPageSeen: false
-    property var  navigationSign: null
-    property var  navigationStatus: NavigationStatus {}
-    property bool navigationStarted: false
-    property var  northArrow: null
-    property var  notification: null
-    property bool poiActive: false
-    property var  poiPanel: null
-    property bool portrait: screenHeight >= screenWidth
-    property var  remorse: null
-    property int  rerouteConsecutiveErrors: 0
-    property var  reroutePreviousTime: -1
-    property int  rerouteTotalCalls: 0
-    property bool rerouting: false
-    property bool running: applicationActive || cover.active
-    property var  scaleBar: null
-    property int  screenHeight: Screen.height
-    property int  screenWidth: Screen.width
-    property var  showNarrative: null
-    property var  showNavigationSign: null
-    property var  showSpeedLimit: null
-    property var  styler: null
-    property var  streetName: null
+    property int    mode: modes.explore
+    property bool   narrativePageSeen: false
+    property bool   navigationPageSeen: false
+    property var    navigationStatus: NavigationStatus {}
+    property bool   navigationStarted: false
+    property var    notification: null
+    property bool   poiActive: false
+    property bool   portrait: screenHeight >= screenWidth
+    property var    remorse: null
+    property int    rerouteConsecutiveErrors: 0
+    property real   reroutePreviousTime: -1
+    property int    rerouteTotalCalls: 0
+    property bool   rerouting: false
+    property var    rootPage: null
+    property bool   running: applicationActive || cover.active
+    property int    screenHeight: Screen.height
+    property int    screenWidth: Screen.width
+    property var    styler: Styler {}
+    property var    _stackMain: Stack {}
+    property var    _stackNavigation: Stack {}
 
     // Default vertical margin for various multiline list items
     // such that it would be consistent with single-line list items
     // and the associated constant Theme.itemSizeSmall.
     property real listItemVerticalMargin: (Theme.itemSizeSmall - 1.125 * Theme.fontSizeMedium) / 2
 
-    Root { id: root }
     PositionSource { id: gps }
     PythonWithTrace { id: py }
 
@@ -95,18 +84,17 @@ ApplicationWindow {
         loops: 1
     }
 
-    Component.onCompleted: {
-        updateMapMatching();
-        updateNavigationSettings();
+    Modes {
+        id: modes
     }
 
     Component.onDestruction: {
         console.log("ApplicationWindow Destruction called, python is ready:" + py.ready)
-        if (!py.ready) return;
-        app.conf.set("auto_center", map.autoCenter);
-        app.conf.set("auto_rotate", map.autoRotate);
-        app.conf.set("center", [map.center.longitude, map.center.latitude]);
-        app.conf.set("zoom", map.zoomLevel);
+        if (!py.ready || !app.map) return;
+        app.conf.set("auto_center", app.map.autoCenter);
+        app.conf.set("auto_rotate", app.map.autoRotate);
+        app.conf.set("center", [app.map.center.longitude, app.map.center.latitude]);
+        app.conf.set("zoom", app.map.zoomLevel);
         py.call_sync("poor.app.quit", []);
         console.log("ApplicationWindow Destruction finished")
     }
@@ -119,25 +107,28 @@ ApplicationWindow {
 
     onApplicationActiveChanged: {
         console.log("AppWindow: onApplicationActiveChanged called")
-        if (!py.ready)
-            return py.onReadyChanged.connect(app.updateKeepAlive);
+        if (!initialized) return;
         app.updateKeepAlive();
         console.log("AppWindow: onApplicationActiveChanged done")
     }
 
-    onNavigationActiveChanged: {
+    onDeviceOrientationChanged: updateOrientation()
+
+    onModeChanged: {
+        if (!initialized) return;
+        if (app.mode === modes.explore) {
+
+        } else if (app.mode === modes.followMe) {
+
+        } else if (app.mode === modes.navigate) {
+            app.navigationPageSeen = true;
+            app.navigationStarted = true;
+            app.rerouteConsecutiveErrors = 0;
+            app.reroutePreviousTime = -1;
+            app.rerouteTotalCalls = 0;
+            app.resetMenu();
+        }
         app.updateKeepAlive();
-    }
-
-    Connections {
-        target: __quickWindow
-        onClosing: console.log("ApplicationWindow __qWindow onClosing")
-    }
-
-    function clearMenu() {
-        // Clear the page stack and hide the menu.
-        app.pageStack.pop(dummy, PageStackAction.Immediate);
-        app.hideMenu();
     }
 
     function getIcon(name, no_variant) {
@@ -156,17 +147,72 @@ ApplicationWindow {
     }
 
     function hideMenu() {
-        // Immediately hide the menu, keeping pages intact.
-        root.visible = true;
+        app._stackMain.keep = true;
+        app._stackMain.setCurrent(app.pageStack.currentPage);
+        app.showMap();
+    }
+
+    function hideNavigationPages() {
+        app._stackNavigation.keep = true;
+        app._stackNavigation.setCurrent(app.pageStack.currentPage);
+        app.showMap();
+    }
+
+    function initialize() {
+        app.hasMapMatching = py.call_sync("poor.app.has_mapmatching", []);
+        updateOrientation();
+        updateKeepAlive();
+        initialized = true;
+    }
+
+    function updateOrientation() {
+        if (!(app.deviceOrientation & app.allowedOrientations)) return;
+        switch (app.deviceOrientation) {
+        case Orientation.Portrait:
+            app.screenWidth = Screen.width;
+            app.screenHeight = Screen.height;
+            break;
+        case Orientation.PortraitInverted:
+            app.screenWidth = Screen.width;
+            app.screenHeight = Screen.height;
+            break;
+        case Orientation.Landscape:
+            app.screenWidth = Screen.height;
+            app.screenHeight = Screen.width;
+            break;
+        case Orientation.LandscapeInverted:
+            app.screenWidth = Screen.height;
+            app.screenHeight = Screen.width;
+            break;
+        }
     }
 
     function playMaybe(message) {
         // Play message via TTS engine if applicable.
-        if (!app.conf.get("voice_navigation")) return;
+        if (!app.conf.voiceNavigation) return;
         var fun = "poor.app.narrative.get_message_voice_uri";
         py.call(fun, [message], function(uri) {
             if (uri) sound.source = uri;
         });
+    }
+
+    function push(pagefile, options) {
+        return app.pageStack.push(pagefile, options ? options : {});
+    }
+
+    function pushAttached(pagefile, options) {
+        return app.pageStack.pushAttached(pagefile, options ? options : {});
+    }
+
+    function pushMain(pagefile, options) {
+        // replace the current main with the new stack
+        app._stackMain.clear();
+        return app._stackMain.push(pagefile, options);
+    }
+
+    function pushAttachedMain(pagefile, options) {
+        // attach pages to the current main
+        return app._stackMain.pushAttached(pagefile, options);
     }
 
     function reroute() {
@@ -206,10 +252,11 @@ ApplicationWindow {
 
     function rerouteMaybe() {
         // Find a new route if conditions are met.
-        if (!app.conf.get("reroute")) return;
-        if (!app.navigationActive) return;
+        if (!app.conf.reroute) return;
+        if (app.mode !== modes.navigate) return;
         if (!gps.position.horizontalAccuracyValid) return;
         if (gps.position.horizontalAccuracy > 100) return;
+        if (!py.evaluate("poor.app.router.can_reroute")) return;
         if (py.evaluate("poor.app.router.offline")) {
             if (Date.now() - app.reroutePreviousTime < 5000) return;
             return app.reroute();
@@ -225,35 +272,53 @@ ApplicationWindow {
         }
     }
 
-    function showNavigationPages() {
-        // Show NavigationPage and NarrativePage.
-        if (!app.pageStack.currentPage ||
-            !app.pageStack.currentPage.partOfNavigationStack) {
-            app.pageStack.pop(dummy, PageStackAction.Immediate);
-            app.pageStack.push("NavigationPage.qml");
-            app.pageStack.pushAttached("NarrativePage.qml");
-        }
-        // If the narrative page is already active, we don't get the page status
-        // change signal and must request repopulation to scroll the list.
-        var narrativePage = app.pageStack.nextPage(app.pageStack.nextPage(dummy));
-        app.pageStack.currentPage === narrativePage && narrativePage.populate();
-        root.visible = false;
+    function resetMenu() {
+        app._stackMain.keep = false;
     }
 
-    function showMenu(page, params) {
-        // Show a menu page, either given, last viewed, or the main menu.
+    function setModeExplore() {
+        app.mode = modes.explore;
+    }
+
+    function setModeFollowMe() {
+        app.mode = modes.followMe;
+    }
+
+    function setModeNavigate() {
+        app.mode = modes.navigate;
+    }
+
+    function showMap() {
+        // Clear the page stack and hide the menu.
+        app.pageStack.completeAnimation();
+        app.pageStack.pop(app.rootPage);
+    }
+
+    function showMenu(page, options) {
         if (page) {
-            app.pageStack.pop(dummy, PageStackAction.Immediate);
-            app.pageStack.push(page, params || {});
-        } else if (app.pageStack.currentPage &&
-                   app.pageStack.currentPage.partOfNavigationStack) {
-            // Clear NavigationPage and NarrativePage from the stack.
-            app.pageStack.pop(dummy, PageStackAction.Immediate);
-            app.pageStack.push("MenuPage.qml");
-        } else if (app.pageStack.depth < 2) {
-            app.pageStack.push("MenuPage.qml");
+            app._stackMain.clear();
+            app.pushMain(page, options);
+        } else if (app._stackMain.keep) {
+            // restore former menu stack
+            app._stackMain.keep = false;
+            app._stackMain.restore();
+        } else {
+            // start a new call
+            app._stackMain.clear();
+            app.push("MenuPage.qml");
         }
-        root.visible = false;
+    }
+
+    function showNavigationPages() {
+        if (app._stackNavigation.keep) {
+            // restore former navigation pages stack
+            app._stackNavigation.keep = false;
+            app._stackNavigation.restore();
+        } else {
+            app._stackNavigation.clear();
+            app._stackNavigation.push("NavigationPage.qml")
+            app._stackNavigation.pushAttached("NarrativePage.qml");
+        }
     }
 
     function tr(message) {
@@ -270,30 +335,13 @@ ApplicationWindow {
         // Update state of keep-alive, i.e. display blanking prevention.
         var prevent = app.conf.get("keep_alive");
         DisplayBlanking.preventBlanking = app.applicationActive &&
-            (prevent === "always" || (prevent === "navigating" && app.navigationActive));
-    }
-
-    function updateMapMatching() {
-        if (!py.ready) return py.onReadyChanged.connect(app.updateMapMatching);
-        app.hasMapMatching = py.call_sync("poor.app.has_mapmatching", []);
-        app.mapMatchingModeIdle = app.conf.get("map_matching_when_idle");
-        // app.mapMatchingModeNavigation is set on Navigation page
-    }
-
-    function updateNavigationSettings() {
-        if (!py.ready) return py.onReadyChanged.connect(app.updateNavigationSettings);
-        if (app.showNarrative === null)
-            app.showNarrative = app.conf.get("show_narrative");
-        if (app.showNavigationSign === null)
-            app.showNavigationSign = app.conf.get("show_navigation_sign");
-        if (app.showSpeedLimit === null)
-            app.showSpeedLimit = app.conf.get("show_speed_limit");
+            (prevent === "always" || (prevent === "navigating" && (app.mode === modes.navigate || app.mode === modes.followMe)));
     }
 
     function updateNavigationStatus(status) {
         // Update navigation status with data from Python backend.
         app.navigationStatus.update(status);
-        if (app.navigationStatus.voiceUri && app.conf.get("voice_navigation"))
+        if (app.navigationStatus.voiceUri && app.conf.voiceNavigation)
             sound.source = app.navigationStatus.voiceUri;
         app.navigationStatus.reroute && app.rerouteMaybe();
     }

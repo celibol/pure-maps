@@ -32,15 +32,15 @@ IconButton {
     icon.width: icon.sourceSize.width
     states: [
         State {
-            when: app.navigationActive && !app.portrait
+            when: (app.mode === modes.navigate || app.mode === modes.followMe) && !app.portrait
             AnchorChanges {
                 target: master
                 anchors.bottom: undefined
-                anchors.top: app.navigationSign.bottom
+                anchors.top: navigationSign.bottom
             }
         },
         State {
-            when: app.navigationActive
+            when: app.mode === modes.navigate || app.mode === modes.followMe
             AnchorChanges {
                 target: master
                 anchors.bottom: undefined
@@ -48,7 +48,7 @@ IconButton {
             }
         }
     ]
-    visible: !app.poiActive || app.navigationActive
+    visible: !app.poiActive || app.mode === modes.navigate || app.mode === modes.followMe
     width: icon.width
     z: 500
 
@@ -58,7 +58,7 @@ IconButton {
         id: bubble
         anchorItem: parent
         showArrow: false
-        state: app.navigationActive ? "bottom-left" : "top-left"
+        state: (app.mode === modes.navigate || app.mode === modes.followMe) ? "bottom-left" : "top-left"
         visible: false
     }
 
